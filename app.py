@@ -5,10 +5,6 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
-from dotenv import load_dotenv
-
-# Cargar variables de entorno desde .env si existe
-load_dotenv()
 
 # Determinar si estamos en producción
 IS_PROD = os.environ.get('RENDER') is not None
@@ -43,13 +39,18 @@ def serve_static(path):
 
 # ==================== CONFIGURACIÓN ====================
 
-# Configuración de la base de datos (Prioridad a variable de entorno)
+# Configuración de la base de datos (Prioridad a DATABASE_URL de Render)
 db_url = os.environ.get('DATABASE_URL')
-if db_url and db_url.startswith("postgres://"):
-    # Fix para Render PostgreSQL
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
+if db_url:
+    # Render a veces usa postgres:// que SQLAlchemy no acepta, cambiamos a postgresql://
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+else:
+    # Remote MySQL Hostinger/Porkbun/etc provided by user
+    # Format: mysql+mysqlconnector://user:password@host/database
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://u659323332_mmq:Mmq23456*@82.197.82.29/u659323332_mmq'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'mysql+mysqlconnector://root:@localhost/mmq'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_123')
 
