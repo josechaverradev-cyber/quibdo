@@ -51,7 +51,7 @@ else:
     # Format: mysql+mysqlconnector://user:password@host/database
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL',
-    'mysql+pymysql://u659323332_mmq:Mmq23456*@82.197.82.29:3306/u659323332_mmq'
+    'mysql+pymysql://u659323332_mmq:mmq23456*@82.197.82.29:3306/u659323332_mmq'
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_123')
