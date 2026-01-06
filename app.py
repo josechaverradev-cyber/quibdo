@@ -8,129 +8,41 @@ import os
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
-# Cargar variables de entorno si existen (útil para local)
-load_dotenv()
 
-# Determinar si estamos en producción
 IS_PROD = os.environ.get('RENDER') is not None
-
-# Configurar carpetas de frontend usando ruta absoluta del archivo
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-dist_folder = os.path.join(BASE_DIR, 'dist')
-
-print(f"📂 Carpeta de estáticos configurada en: {dist_folder}")
-if os.path.exists(dist_folder):
-    print(f"✅ La carpeta 'dist' existe. Contenido: {os.listdir(dist_folder)}")
-else:
-    print(f"❌ La carpeta 'dist' NO existe en esta ubicación.")
-
-app = Flask(__name__, static_folder=dist_folder, static_url_path='')
+load_dotenv()
+# Cargar variables de entorno si existen (útil para local)
+app = Flask(__name__, static_folder='dist', static_url_path='')
 CORS(app)
 
-# ==================== RUTAS ESTÁTICAS ====================
+# ==================== CONFIGURACIÓN DE BASE DE DATOS ====================
 
-@app.route('/')
-def index():
-    """Servir index.html en la raíz"""
-    return send_from_directory(app.static_folder, 'index.html')
+# Datos de tu conexión (Separados para evitar errores de formato)
+user = "u659323332_mmq"
+password = quote_plus("Mmq23456*") # Esto codifica el '*' correctamente
+host = "82.197.82.29"
+database = "u659323332_mmq"
 
-@app.route('/<path:path>')
-def serve_static(path):
-    """Servir archivos estáticos o redirigir a index.html (SPA)"""
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, 'index.html')
+db_url = os.environ.get('DATABASE_URL')
 
-# ==================== CONFIGURACIÓN ====================
+if db_url:
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+else:
+    # Usamos f-string limpia sin espacios accidentales
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{user}:{password}@{host}/{database}"
 
-# Configuración de la base de datos con prioridad a variables de entorno
-def get_database_url():
-    """Obtener URL de base de datos con la siguiente prioridad:
-    1. DATABASE_URL (PostgreSQL de Render o cualquier otra DB)
-    2. MYSQL_URL (MySQL remota)
-    3. Variables individuales de MySQL (host, user, password, database)
-    4. URL hardcodeada como fallback
-    """
-    
-    # Opción 1: DATABASE_URL (PostgreSQL de Render)
-    db_url = os.environ.get('DATABASE_URL')
-    if db_url:
-        print("🔗 Usando DATABASE_URL de Render")
-        # Render a veces usa postgres:// que SQLAlchemy no acepta
-        if db_url.startswith("postgres://"):
-            db_url = db_url.replace("postgres://", "postgresql://", 1)
-        return db_url
-    
-    # Opción 2: MYSQL_URL completa
-    mysql_url = os.environ.get('MYSQL_URL')
-    if mysql_url:
-        print("🔗 Usando MYSQL_URL")
-        # Asegurar que use pymysql
-        if 'mysql+mysqlconnector' in mysql_url:
-            mysql_url = mysql_url.replace('mysql+mysqlconnector', 'mysql+pymysql')
-        elif mysql_url.startswith('mysql://'):
-            mysql_url = mysql_url.replace('mysql://', 'mysql+pymysql://', 1)
-        return mysql_url
-    
-    # Opción 3: Variables individuales de MySQL
-    mysql_host = os.environ.get('MYSQL_HOST')
-    mysql_user = os.environ.get('MYSQL_USER')
-    mysql_password = os.environ.get('MYSQL_PASSWORD')
-    mysql_database = os.environ.get('MYSQL_DATABASE')
-    mysql_port = os.environ.get('MYSQL_PORT', '3306')
-    
-    if all([mysql_host, mysql_user, mysql_password, mysql_database]):
-        print("🔗 Construyendo URL de MySQL desde variables individuales")
-        # Escapar la contraseña por si tiene caracteres especiales
-        safe_password = quote_plus(mysql_password)
-        # Usar pymysql en lugar de mysqlconnector
-        return f"mysql+pymysql://{mysql_user}:{safe_password}@{mysql_host}:{mysql_port}/{mysql_database}"
-    
-    # Opción 4: Fallback a configuración hardcodeada (AHORA CON PYMYSQL)
-    print("⚠️ Usando configuración de base de datos hardcodeada (fallback)")
-    # Escapar la contraseña
-    safe_password = quote_plus('Mmq23456*')
-    return f'mysql+pymysql://u659323332_mmq:{safe_password}@82.197.82.29/u659323332_mmq'
-
-# Configurar la base de datos
-app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_123')
-
-# Configuración adicional de SQLAlchemy para conexiones remotas
+# Opciones para que la conexión remota no se caiga (Error 2006)
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 10,
-    'pool_recycle': 3600,
-    'pool_pre_ping': True,  # Verifica la conexión antes de usarla
-    'connect_args': {
-        'connect_timeout': 10,
-        'charset': 'utf8mb4'  # Asegurar UTF-8 para caracteres especiales
-    }
+    "pool_pre_ping": True,
+    "pool_recycle": 280,
 }
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-print(f"📊 Base de datos configurada: {app.config['SQLALCHEMY_DATABASE_URI'].split('@')[1] if '@' in app.config['SQLALCHEMY_DATABASE_URI'] else 'local'}")
-
-# Configuración para subida de archivos (Usa ruta absoluta para Render)
-UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi', 'webm'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max
-
-# Crear carpetas de uploads si no existen
-os.makedirs(os.path.join(UPLOAD_FOLDER, 'events'), exist_ok=True)
-os.makedirs(os.path.join(UPLOAD_FOLDER, 'gallery'), exist_ok=True)
-os.makedirs(os.path.join(UPLOAD_FOLDER, 'hero'), exist_ok=True)
-os.makedirs(os.path.join(UPLOAD_FOLDER, 'sponsors'), exist_ok=True)
-
+# ==================== INICIALIZACIÓN DE DB ====================
+# Definimos 'db' AQUÍ, antes de los modelos
 db = SQLAlchemy(app)
-
-# ==================== HELPER FUNCTIONS ====================
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# ==================== MODELOS ====================
 
 # ==================== MODELOS ====================
 
@@ -733,54 +645,30 @@ def get_stats():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-# ==================== HEALTH CHECK ====================
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Verificar estado del servidor y base de datos"""
-    try:
-        # Intentar hacer una query simple para verificar la conexión a la DB
-        db.session.execute(db.text('SELECT 1'))
-        return jsonify({
-            'status': 'success',
-            'message': 'Servidor funcionando correctamente',
-            'database': 'connected'
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': 'Error de conexión a la base de datos',
-            'error': str(e)
-        }), 500
-
 # ==================== INICIALIZACIÓN ====================
 
 def init_db():
     """Inicializar la base de datos"""
-    try:
-        with app.app_context():
-            db.create_all()
-            
-            if not HeroSettings.query.first():
-                hero_settings = HeroSettings(
-                    hero_video='',
-                    event_date='2025-08-10T06:00:00'
-                )
-                db.session.add(hero_settings)
-            
-            if not EventSetting.query.first():
-                main_event = EventSetting(
-                    event_name='Media Maratón de Quibdó 2025',
-                    event_date=datetime(2025, 8, 10, 6, 0, 0),
-                    is_active=True
-                )
-                db.session.add(main_event)
-            
-            db.session.commit()
-            print("✅ Base de datos inicializada correctamente")
-    except Exception as e:
-        print(f"⚠️ Error inicializando DB: {e}")
-        db.session.rollback()
+    with app.app_context():
+        db.create_all()
+        
+        if not HeroSettings.query.first():
+            hero_settings = HeroSettings(
+                hero_video='',
+                event_date='2025-08-10T06:00:00'
+            )
+            db.session.add(hero_settings)
+        
+        if not EventSetting.query.first():
+            main_event = EventSetting(
+                event_name='Media Maratón de Quibdó 2025',
+                event_date=datetime(2025, 8, 10, 6, 0, 0),
+                is_active=True
+            )
+            db.session.add(main_event)
+        
+        db.session.commit()
+        print("✅ Base de datos inicializada correctamente")
 
 # ==================== MANEJO DE ERRORES ====================
 
@@ -804,7 +692,11 @@ def internal_error(error):
 # ==================== EJECUTAR APP ====================
 
 # Inicializar base de datos al arrancar
-init_db()
+with app.app_context():
+    try:
+        init_db()
+    except Exception as e:
+        print(f"⚠️ Error inicializando DB: {e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
