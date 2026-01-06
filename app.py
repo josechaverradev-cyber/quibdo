@@ -9,11 +9,33 @@ import os
 # Determinar si estamos en producción
 IS_PROD = os.environ.get('RENDER') is not None
 
-# Configurar carpetas de frontend si existe el build
-dist_folder = os.path.join(os.getcwd(), 'dist')
+# Configurar carpetas de frontend usando ruta absoluta del archivo
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+dist_folder = os.path.join(BASE_DIR, 'dist')
+
+print(f"📂 Carpeta de estáticos configurada en: {dist_folder}")
+if os.path.exists(dist_folder):
+    print(f"✅ La carpeta 'dist' existe. Contenido: {os.listdir(dist_folder)}")
+else:
+    print(f"❌ La carpeta 'dist' NO existe en esta ubicación.")
 
 app = Flask(__name__, static_folder=dist_folder, static_url_path='')
 CORS(app)
+
+# ==================== RUTAS ESTÁTICAS ====================
+
+@app.route('/')
+def index():
+    """Servir index.html en la raíz"""
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    """Servir archivos estáticos o redirigir a index.html (SPA)"""
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 # ==================== CONFIGURACIÓN ====================
 
@@ -25,8 +47,9 @@ if db_url:
         db_url = db_url.replace("postgres://", "postgresql://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 else:
-    # Local MySQL por defecto si no hay variable de entorno
-   app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://u659323332_mmq:Mmq123456*@82.197.82.29/u659323332_mmq'
+    # Remote MySQL Hostinger/Porkbun/etc provided by user
+    # Format: mysql+mysqlconnector://user:password@host/database
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://u659323332_mmq:Mmq123456*@82.197.82.29/u659323332_mmq'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_123')
