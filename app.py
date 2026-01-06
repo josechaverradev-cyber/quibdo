@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 from dotenv import load_dotenv
+from urllib.parse import quote_plus
 
 # Cargar variables de entorno si existen (útil para local)
 load_dotenv()
@@ -65,6 +66,11 @@ def get_database_url():
     mysql_url = os.environ.get('MYSQL_URL')
     if mysql_url:
         print("🔗 Usando MYSQL_URL")
+        # Asegurar que use pymysql
+        if 'mysql+mysqlconnector' in mysql_url:
+            mysql_url = mysql_url.replace('mysql+mysqlconnector', 'mysql+pymysql')
+        elif mysql_url.startswith('mysql://'):
+            mysql_url = mysql_url.replace('mysql://', 'mysql+pymysql://', 1)
         return mysql_url
     
     # Opción 3: Variables individuales de MySQL
@@ -76,12 +82,16 @@ def get_database_url():
     
     if all([mysql_host, mysql_user, mysql_password, mysql_database]):
         print("🔗 Construyendo URL de MySQL desde variables individuales")
-        # Construir URL de MySQL
-        return f"mysql+mysqlconnector://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
+        # Escapar la contraseña por si tiene caracteres especiales
+        safe_password = quote_plus(mysql_password)
+        # Usar pymysql en lugar de mysqlconnector
+        return f"mysql+pymysql://{mysql_user}:{safe_password}@{mysql_host}:{mysql_port}/{mysql_database}"
     
-    # Opción 4: Fallback a configuración hardcodeada
+    # Opción 4: Fallback a configuración hardcodeada (AHORA CON PYMYSQL)
     print("⚠️ Usando configuración de base de datos hardcodeada (fallback)")
-    return 'mysql+mysqlconnector://u659323332_mmq:Mmq23456*@82.197.82.29/u659323332_mmq'
+    # Escapar la contraseña
+    safe_password = quote_plus('Mmq23456*')
+    return f'mysql+pymysql://u659323332_mmq:{safe_password}@82.197.82.29/u659323332_mmq'
 
 # Configurar la base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
@@ -94,7 +104,8 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_recycle': 3600,
     'pool_pre_ping': True,  # Verifica la conexión antes de usarla
     'connect_args': {
-        'connect_timeout': 10
+        'connect_timeout': 10,
+        'charset': 'utf8mb4'  # Asegurar UTF-8 para caracteres especiales
     }
 }
 
@@ -118,6 +129,8 @@ db = SQLAlchemy(app)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# ==================== MODELOS ====================
 
 # ==================== MODELOS ====================
 
