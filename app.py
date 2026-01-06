@@ -15,6 +15,8 @@ load_dotenv()
 app = Flask(__name__, static_folder='dist', static_url_path='')
 CORS(app)
 
+app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
+
 # ==================== CONFIGURACIÓN DE BASE DE DATOS ====================
 
 # Datos de tu conexión (Separados para evitar errores de formato)
