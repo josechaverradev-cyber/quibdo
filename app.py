@@ -17,10 +17,19 @@ CORS(app)
 user = "u659323332_mmq"
 password = quote_plus("Mmq23456*")
 host = "82.197.82.29"
+port = 3306 # Aseguramos el puerto estándar
 database = "u659323332_mmq"
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{user}:{password}@{host}/{database}"
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True, "pool_recycle": 280}
+# Añadimos el puerto a la URI
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 60,  # Reducimos el reciclaje para mantener la conexión fresca
+    "connect_args": {
+        "connect_timeout": 10 # Le damos 10 segundos para intentar conectar
+    }
+}
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
