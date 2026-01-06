@@ -5,6 +5,10 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno si existen (útil para local)
+load_dotenv()
 
 # Determinar si estamos en producción
 IS_PROD = os.environ.get('RENDER') is not None
@@ -39,22 +43,62 @@ def serve_static(path):
 
 # ==================== CONFIGURACIÓN ====================
 
-# Configuración de la base de datos (Prioridad a DATABASE_URL de Render)
-db_url = os.environ.get('DATABASE_URL')
-if db_url:
-    # Render a veces usa postgres:// que SQLAlchemy no acepta, cambiamos a postgresql://
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-else:
-    # Remote MySQL Hostinger/Porkbun/etc provided by user
-    # Format: mysql+mysqlconnector://user:password@host/database
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'DATABASE_URL',
-    'mysql+pymysql://u659323332_mmq:mmq23456*@82.197.82.29:3306/u659323332_mmq'
-)
+# Configuración de la base de datos con prioridad a variables de entorno
+def get_database_url():
+    """Obtener URL de base de datos con la siguiente prioridad:
+    1. DATABASE_URL (PostgreSQL de Render o cualquier otra DB)
+    2. MYSQL_URL (MySQL remota)
+    3. Variables individuales de MySQL (host, user, password, database)
+    4. URL hardcodeada como fallback
+    """
+    
+    # Opción 1: DATABASE_URL (PostgreSQL de Render)
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        print("🔗 Usando DATABASE_URL de Render")
+        # Render a veces usa postgres:// que SQLAlchemy no acepta
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        return db_url
+    
+    # Opción 2: MYSQL_URL completa
+    mysql_url = os.environ.get('MYSQL_URL')
+    if mysql_url:
+        print("🔗 Usando MYSQL_URL")
+        return mysql_url
+    
+    # Opción 3: Variables individuales de MySQL
+    mysql_host = os.environ.get('MYSQL_HOST')
+    mysql_user = os.environ.get('MYSQL_USER')
+    mysql_password = os.environ.get('MYSQL_PASSWORD')
+    mysql_database = os.environ.get('MYSQL_DATABASE')
+    mysql_port = os.environ.get('MYSQL_PORT', '3306')
+    
+    if all([mysql_host, mysql_user, mysql_password, mysql_database]):
+        print("🔗 Construyendo URL de MySQL desde variables individuales")
+        # Construir URL de MySQL
+        return f"mysql+mysqlconnector://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
+    
+    # Opción 4: Fallback a configuración hardcodeada
+    print("⚠️ Usando configuración de base de datos hardcodeada (fallback)")
+    return 'mysql+mysqlconnector://u659323332_mmq:Mmq23456*@82.197.82.29/u659323332_mmq'
+
+# Configurar la base de datos
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_123')
+
+# Configuración adicional de SQLAlchemy para conexiones remotas
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 3600,
+    'pool_pre_ping': True,  # Verifica la conexión antes de usarla
+    'connect_args': {
+        'connect_timeout': 10
+    }
+}
+
+print(f"📊 Base de datos configurada: {app.config['SQLALCHEMY_DATABASE_URI'].split('@')[1] if '@' in app.config['SQLALCHEMY_DATABASE_URI'] else 'local'}")
 
 # Configuración para subida de archivos (Usa ruta absoluta para Render)
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
@@ -676,12 +720,33 @@ def get_stats():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+# ==================== HEALTH CHECK ====================
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Verificar estado del servidor y base de datos"""
+    try:
+        # Intentar hacer una query simple para verificar la conexión a la DB
+        db.session.execute(db.text('SELECT 1'))
+        return jsonify({
+            'status': 'success',
+            'message': 'Servidor funcionando correctamente',
+            'database': 'connected'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': 'Error de conexión a la base de datos',
+            'error': str(e)
+        }), 500
+
 # ==================== INICIALIZACIÓN ====================
 
 def init_db():
     """Inicializar la base de datos"""
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
         
         if not HeroSettings.query.first():
             hero_settings = HeroSettings(
