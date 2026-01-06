@@ -49,7 +49,11 @@ if db_url:
 else:
     # Remote MySQL Hostinger/Porkbun/etc provided by user
     # Format: mysql+mysqlconnector://user:password@host/database
+<<<<<<< HEAD
     app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://u659323332_mmq:Mmq23456*@82.197.82.29/u659323332_mmq'
+=======
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://u659323332_mmq:Mmq23456@82.197.82.29/u659323332_mmq'
+>>>>>>> 7e6559a3bf6e6adf43a3d5b2a0a68cc2b5c7d9c7
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_123')
