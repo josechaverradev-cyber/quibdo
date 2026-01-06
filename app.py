@@ -744,27 +744,30 @@ def health_check():
 
 def init_db():
     """Inicializar la base de datos"""
-    with app.app_context():
-        try:
+    try:
+        with app.app_context():
             db.create_all()
-        
-        if not HeroSettings.query.first():
-            hero_settings = HeroSettings(
-                hero_video='',
-                event_date='2025-08-10T06:00:00'
-            )
-            db.session.add(hero_settings)
-        
-        if not EventSetting.query.first():
-            main_event = EventSetting(
-                event_name='Media Maratón de Quibdó 2025',
-                event_date=datetime(2025, 8, 10, 6, 0, 0),
-                is_active=True
-            )
-            db.session.add(main_event)
-        
-        db.session.commit()
-        print("✅ Base de datos inicializada correctamente")
+            
+            if not HeroSettings.query.first():
+                hero_settings = HeroSettings(
+                    hero_video='',
+                    event_date='2025-08-10T06:00:00'
+                )
+                db.session.add(hero_settings)
+            
+            if not EventSetting.query.first():
+                main_event = EventSetting(
+                    event_name='Media Maratón de Quibdó 2025',
+                    event_date=datetime(2025, 8, 10, 6, 0, 0),
+                    is_active=True
+                )
+                db.session.add(main_event)
+            
+            db.session.commit()
+            print("✅ Base de datos inicializada correctamente")
+    except Exception as e:
+        print(f"⚠️ Error inicializando DB: {e}")
+        db.session.rollback()
 
 # ==================== MANEJO DE ERRORES ====================
 
@@ -788,11 +791,7 @@ def internal_error(error):
 # ==================== EJECUTAR APP ====================
 
 # Inicializar base de datos al arrancar
-with app.app_context():
-    try:
-        init_db()
-    except Exception as e:
-        print(f"⚠️ Error inicializando DB: {e}")
+init_db()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
