@@ -16,8 +16,8 @@ CORS(app)
 # 2. Conexión a MySQL (PyMySQL)
 user = "u659323332_mmq"
 password = quote_plus("Mmq23456*")
-host = "82.197.82.29"
-port = 3306 # Aseguramos el puerto estándar
+host = "srv1509.hstgr.io"
+port = 3307 # Aseguramos el puerto estándar
 database = "u659323332_mmq"
 
 # Añadimos el puerto a la URI
