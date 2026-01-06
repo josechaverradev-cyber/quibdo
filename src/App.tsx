@@ -13,7 +13,7 @@ import Galeria from "./pages/Galeria";
 import Ruta5 from "./pages/Ruta5";
 import Ruta10 from "./pages/Ruta10";
 import Ruta from "./pages/Ruta";
-import Turismo from "./pages/turismo";
+import Turismo from "./pages/Turismo";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
