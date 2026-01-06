@@ -107,7 +107,7 @@ packaging==25.0
 pandas==2.3.3
 passlib==1.7.4
 pefile==2024.8.26
-pillow==12.0.0
+pillow==10.4.0
 plotly==6.5.0
 polars==1.35.2
 polars-runtime-32==1.35.2
@@ -183,8 +183,8 @@ timm==1.0.22
 tinycss2==1.5.0
 tinyhtml5==2.0.0
 tomlkit==0.13.3
-torch==2.9.0
-torchvision==0.24.0
+torch==2.3.1
+torchvision==0.18.1
 tqdm==4.67.1
 trio==0.32.0
 trio-websocket==0.12.2
@@ -196,10 +196,10 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.2
 ujson==5.11.0
-ultralytics==8.3.227
-ultralytics-thop==2.0.18
+ultralytics==8.2.0
+ultralytics-thop==2.0.0
 uritemplate==4.2.0
-urllib3==2.6.1
+urllib3==2.2.1
 utils==1.0.2
 uvicorn==0.38.0
 vine==5.1.0
