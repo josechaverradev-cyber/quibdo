@@ -49,7 +49,7 @@ if db_url:
 else:
     # Remote MySQL Hostinger/Porkbun/etc provided by user
     # Format: mysql+mysqlconnector://user:password@host/database
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:@8localhost:306/mmq'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:@8localhost/mmq'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_123')
