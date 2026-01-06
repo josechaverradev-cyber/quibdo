@@ -26,7 +26,7 @@ if db_url:
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 else:
     # Local MySQL por defecto si no hay variable de entorno
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:@localhost/mmq'
+   app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://u659323332_mmq:Mmq123456*@82.197.82.29/u659323332_mmq'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_123')
