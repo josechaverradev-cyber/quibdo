@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const isProd = import.meta.env.PROD;
+const API_BASE_URL = isProd ? '/api' : 'http://localhost:5000/api';
 
 // Utilidad centralizada para manejar respuestas y errores
 const handleResponse = async (response: Response) => {
@@ -11,22 +12,22 @@ const handleResponse = async (response: Response) => {
 
 // ==================== EVENTOS ====================
 export const eventsAPI = {
-  getAll: () => 
+  getAll: () =>
     fetch(`${API_BASE_URL}/events`).then(handleResponse),
 
-  create: (formData: FormData) => 
+  create: (formData: FormData) =>
     fetch(`${API_BASE_URL}/events`, {
       method: 'POST',
       body: formData, // No lleva headers de Content-Type, el navegador lo pone solo con el boundary
     }).then(handleResponse),
 
-  update: (eventId: string, formData: FormData) => 
+  update: (eventId: string, formData: FormData) =>
     fetch(`${API_BASE_URL}/events/${eventId}`, {
       method: 'PUT',
       body: formData,
     }).then(handleResponse),
 
-  delete: (eventId: string) => 
+  delete: (eventId: string) =>
     fetch(`${API_BASE_URL}/events/${eventId}`, {
       method: 'DELETE',
     }).then(handleResponse),
@@ -34,22 +35,22 @@ export const eventsAPI = {
 
 // ==================== GALERÍA ====================
 export const galleryAPI = {
-  getAll: () => 
+  getAll: () =>
     fetch(`${API_BASE_URL}/gallery`).then(handleResponse),
 
-  create: (formData: FormData) => 
+  create: (formData: FormData) =>
     fetch(`${API_BASE_URL}/gallery`, {
       method: 'POST',
       body: formData,
     }).then(handleResponse),
 
-  createBulk: (formData: FormData) => 
+  createBulk: (formData: FormData) =>
     fetch(`${API_BASE_URL}/gallery/bulk`, {
       method: 'POST',
       body: formData,
     }).then(handleResponse),
 
-  delete: (itemId: string) => 
+  delete: (itemId: string) =>
     fetch(`${API_BASE_URL}/gallery/${itemId}`, {
       method: 'DELETE',
     }).then(handleResponse),
@@ -57,16 +58,16 @@ export const galleryAPI = {
 
 // ==================== PATROCINADORES (Sponsors) ====================
 export const sponsorsAPI = {
-  getAll: () => 
+  getAll: () =>
     fetch(`${API_BASE_URL}/sponsors`).then(handleResponse),
 
-  create: (formData: FormData) => 
+  create: (formData: FormData) =>
     fetch(`${API_BASE_URL}/sponsors`, {
       method: 'POST',
       body: formData,
     }).then(handleResponse),
 
-  delete: (sponsorId: string) => 
+  delete: (sponsorId: string) =>
     fetch(`${API_BASE_URL}/sponsors/${sponsorId}`, {
       method: 'DELETE',
     }).then(handleResponse),
@@ -74,16 +75,16 @@ export const sponsorsAPI = {
 
 // ==================== CONFIGURACIÓN HERO ====================
 export const heroAPI = {
-  getSettings: () => 
+  getSettings: () =>
     fetch(`${API_BASE_URL}/hero-settings`).then(handleResponse),
 
-  updateVideo: (formData: FormData) => 
+  updateVideo: (formData: FormData) =>
     fetch(`${API_BASE_URL}/hero-settings/video`, {
       method: 'PUT',
       body: formData,
     }).then(handleResponse),
 
-  updateEventDate: (eventDate: string) => 
+  updateEventDate: (eventDate: string) =>
     fetch(`${API_BASE_URL}/hero-settings/event-date`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -97,7 +98,7 @@ export const eventInfoAPI = {
 };
 
 export const adminAPI = {
-  login: (password: string) => 
+  login: (password: string) =>
     fetch(`${API_BASE_URL}/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -6,16 +6,33 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 
-app = Flask(__name__)
+# Determinar si estamos en producción
+IS_PROD = os.environ.get('RENDER') is not None
+
+# Configurar carpetas de frontend si existe el build
+dist_folder = os.path.join(os.getcwd(), 'dist')
+
+app = Flask(__name__, static_folder=dist_folder, static_url_path='')
 CORS(app)
 
-# Configuración de la base de datos
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:@localhost/mmq'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui_cambiarla_en_produccion'
+# ==================== CONFIGURACIÓN ====================
 
-# Configuración para subida de archivos
-UPLOAD_FOLDER = 'uploads'
+# Configuración de la base de datos (Prioridad a DATABASE_URL de Render)
+db_url = os.environ.get('DATABASE_URL')
+if db_url:
+    # Render a veces usa postgres:// que SQLAlchemy no acepta, cambiamos a postgresql://
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+else:
+    # Local MySQL por defecto si no hay variable de entorno
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:@localhost/mmq'
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_123')
+
+# Configuración para subida de archivos (Usa ruta absoluta para Render)
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi', 'webm'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max
@@ -663,7 +680,15 @@ def init_db():
 
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({'status': 'error', 'message': 'Recurso no encontrado'}), 404
+    """Manejar 404: Si es API retornar JSON, si es ruta de React retornar index.html"""
+    if request.path.startswith('/api/'):
+        return jsonify({'status': 'error', 'message': 'Recurso no encontrado'}), 404
+    
+    # Servir index.html para rutas de React que no existen físicamente en el servidor
+    if os.path.exists(os.path.join(app.static_folder, 'index.html')):
+        return send_from_directory(app.static_folder, 'index.html')
+    
+    return jsonify({'status': 'error', 'message': 'Frontend no construido o no encontrado'}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -672,7 +697,14 @@ def internal_error(error):
 
 # ==================== EJECUTAR APP ====================
 
+# Inicializar base de datos al arrancar
+with app.app_context():
+    try:
+        init_db()
+    except Exception as e:
+        print(f"⚠️ Error inicializando DB: {e}")
+
 if __name__ == '__main__':
-    init_db()
-    print("🚀 Servidor Flask iniciado en http://localhost:5000")
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    port = int(os.environ.get('PORT', 5000))
+    print(f"🚀 Servidor Flask iniciado en puerto {port}")
+    app.run(debug=not IS_PROD, port=port, host='0.0.0.0')
